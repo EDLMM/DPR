@@ -63,7 +63,7 @@ class BiEncoderTrainer(object):
         if model_file:
             saved_state = load_states_from_checkpoint(model_file)
             set_encoder_params_from_state(saved_state.encoder_params, args)
-
+        # TODO 1: add DR_model
         tensorizer, model, optimizer = init_biencoder_components(args.encoder_model_type, args)
 
         model, optimizer = setup_for_distributed_mode(model, optimizer, args.device, args.n_gpu,
@@ -235,19 +235,17 @@ class BiEncoderTrainer(object):
 
                 q_ids, q_segments = (biencoder_input.question_ids, biencoder_input.question_segments) if j == 0 \
                     else (None, None)
-                q_ids = move_to_device(q_ids, args.device)
-                q_segments = move_to_device(q_segments, args.device)
+
                 if j == 0 and args.n_gpu > 1 and q_ids.size(0) == 1:
                     # if we are in DP (but not in DDP) mode, all model input tensors should have batch size >1 or 0,
                     # otherwise the other input tensors will be split but only the first split will be called
                     continue
 
-                ctx_ids_batch = move_to_device(ctxs_ids[batch_start:batch_start + sub_batch_size], args.device)
-                ctx_seg_batch = move_to_device(ctxs_segments[batch_start:batch_start + sub_batch_size], args.device)
+                ctx_ids_batch = ctxs_ids[batch_start:batch_start + sub_batch_size]
+                ctx_seg_batch = ctxs_segments[batch_start:batch_start + sub_batch_size]
 
-                q_attn_mask = move_to_device(self.tensorizer.get_attn_mask(q_ids), args.device)
-                ctx_attn_mask = move_to_device(self.tensorizer.get_attn_mask(ctx_ids_batch), args.device)
-                
+                q_attn_mask = self.tensorizer.get_attn_mask(q_ids)
+                ctx_attn_mask = self.tensorizer.get_attn_mask(ctx_ids_batch)
                 with torch.no_grad():
                     q_dense, ctx_dense = self.biencoder(q_ids, q_segments, q_attn_mask, ctx_ids_batch, ctx_seg_batch,
                                                         ctx_attn_mask)
