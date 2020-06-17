@@ -235,6 +235,7 @@ class BiEncoderTrainer(object):
 
                 q_ids, q_segments = (biencoder_input.question_ids, biencoder_input.question_segments) if j == 0 \
                     else (None, None)
+                # notice: change here
                 q_ids = move_to_device(q_ids, args.device)
                 q_segments = move_to_device(q_segments, args.device)
                 if j == 0 and args.n_gpu > 1 and q_ids.size(0) == 1:
